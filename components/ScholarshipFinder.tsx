@@ -3,8 +3,15 @@ import { findScholarships } from '../services/geminiService';
 import type { Scholarship, GroundingSource } from '../types';
 import LoadingSpinner from './LoadingSpinner';
 import ScholarshipCard from './ScholarshipCard';
-import { SearchIcon, UserCircleIcon } from './Icons';
+import { SearchIcon, UserCircleIcon, WarningIcon } from './Icons';
 import SourceLink from './SourceLink';
+
+const FilterInput: React.FC<{ label: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; placeholder: string; }> = ({ label, value, onChange, placeholder }) => (
+    <div>
+        <label className="block text-sm font-medium text-slate-600 mb-1">{label}</label>
+        <input type="text" value={value} onChange={onChange} placeholder={placeholder} className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-cyan-500 focus:border-cyan-500"/>
+    </div>
+);
 
 const ScholarshipFinder: React.FC = () => {
   const [query, setQuery] = useState('');
@@ -43,13 +50,6 @@ const ScholarshipFinder: React.FC = () => {
       setIsLoading(false);
     }
   };
-
-  const FilterInput: React.FC<{ label: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; placeholder: string; }> = ({ label, value, onChange, placeholder }) => (
-    <div>
-        <label className="block text-sm font-medium text-slate-600 mb-1">{label}</label>
-        <input type="text" value={value} onChange={onChange} placeholder={placeholder} className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-cyan-500 focus:border-cyan-500"/>
-    </div>
-   );
 
   return (
     <div className="flex flex-col">
@@ -90,7 +90,23 @@ const ScholarshipFinder: React.FC = () => {
         </button>
       </form>
       
-      {error && <p className="text-red-500 text-center bg-red-100 p-3 rounded-lg">{error}</p>}
+        {error && (
+            <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg mb-4" role="alert">
+                <div className="flex items-center">
+                    <WarningIcon />
+                    <h3 className="font-bold ml-2">An Error Occurred</h3>
+                </div>
+                <p className="mt-2 text-sm">{error}</p>
+                <div className="mt-3 text-sm">
+                    <p className="font-semibold">Here are a few tips:</p>
+                    <ul className="list-disc list-inside ml-2 mt-1 space-y-1">
+                        <li>Try using broader or different search terms.</li>
+                        <li>Ensure there are no typos in your query.</li>
+                        <li>Adjust or simplify the filters you've applied.</li>
+                    </ul>
+                </div>
+            </div>
+        )}
       
       <div className="space-y-4">
         {isLoading && (

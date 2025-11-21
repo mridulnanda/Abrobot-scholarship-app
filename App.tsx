@@ -4,11 +4,17 @@ import Footer from './components/Footer';
 import ScholarshipFinder from './components/ScholarshipFinder';
 import NewsFeed from './components/NewsFeed';
 import { BookOpenIcon, NewspaperIcon } from './components/Icons';
+import LeadGenerationForm from './components/LeadGenerationForm';
 
 type Tab = 'scholarships' | 'news';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('scholarships');
+  const [isVerified, setIsVerified] = useState(false);
+
+  if (!isVerified) {
+    return <LeadGenerationForm onVerified={() => setIsVerified(true)} />;
+  }
 
   const renderContent = () => {
     switch (activeTab) {
