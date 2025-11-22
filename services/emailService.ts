@@ -5,28 +5,82 @@ interface LeadData {
 }
 
 /**
- * Simulates sending lead generation data to an email address.
- * In a real-world application, this function would make an API call 
- * to a backend service or a third-party email service (like EmailJS or Formspree)
- * which would then send the email.
+ * Simulates sending a verification email to the user.
  * 
  * @param data - The user's contact information.
  * @returns A promise that resolves to true on successful "sending".
  */
-export const sendLeadData = async (data: LeadData): Promise<boolean> => {
-    const recipient = 'contact@mnbresearch.com';
+export const sendVerificationEmail = async (data: LeadData): Promise<boolean> => {
+    const recipient = data.email;
     
-    console.log('--- SIMULATING EMAIL ---');
-    console.log(`Recipient: ${recipient}`);
-    console.log(`Name: ${data.name}`);
-    console.log(`Email: ${data.email}`);
-    console.log(`Phone: ${data.phone}`);
-    console.log('------------------------');
+    const subject = "Activate your AbroBot access — Begin your AI-powered study abroad journey";
+    
+    const body = `
+Hi ${data.name}, 👋
+
+Welcome to AbroBot — India’s first AI-powered Study Abroad Advisor built to simplify your entire admission journey.
+Before we begin analyzing your SOP or matching you with top universities, please activate your form by clicking the button below.
+
+Your activation ensures your profile is securely linked to your personalized dashboard — powered by insights from 25 lakh+ student reviews and 4000+ expert consultants.
+
+👉 [Activate My Form](https://abrobot.com/activate?token=simulated_token)
+
+Once you activate, you’ll instantly unlock:
+✅ AI-based SOP feedback & improvement suggestions
+✅ Smart university and scholarship matching
+✅ Free access to our daily visa & admission update feed
+
+If you face any issues or didn’t request this, simply ignore this email — your data remains safe and unprocessed until activation.
+
+Need Help?
+
+📞 +91 9711488481
+📧 contact@mnbresearch.com
+`;
+
+    console.log('--- SIMULATING EMAIL SENDING (USER VERIFICATION) ---');
+    console.log(`To: ${recipient}`);
+    console.log(`Subject: ${subject}`);
+    console.log(`Body:\n${body}`);
+    console.log('----------------------------------------------------');
+
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    return true;
+};
+
+/**
+ * Simulates forwarding the verified lead details to the admin.
+ * 
+ * @param data - The user's contact information.
+ * @returns A promise that resolves to true on successful "sending".
+ */
+export const notifyAdminOfNewLead = async (data: LeadData): Promise<boolean> => {
+    const recipient = "mnbgotyou@gmail.com";
+    const subject = "New Verified Lead - AbroBot";
+    
+    const body = `
+A new user has verified their email and accessed the platform.
+
+Lead Details:
+-------------
+Name:  ${data.name}
+Email: ${data.email}
+Phone: ${data.phone}
+
+Status: Verified
+Timestamp: ${new Date().toISOString()}
+`;
+
+    console.log('--- SIMULATING EMAIL SENDING (ADMIN NOTIFICATION) ---');
+    console.log(`To: ${recipient}`);
+    console.log(`Subject: ${subject}`);
+    console.log(`Body:\n${body}`);
+    console.log('-----------------------------------------------------');
 
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // In a real scenario, you'd handle potential errors from the API call.
-    // For this simulation, we'll always assume success.
     return true;
 };

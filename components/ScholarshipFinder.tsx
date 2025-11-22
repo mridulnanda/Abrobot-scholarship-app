@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { findScholarships } from '../services/geminiService';
 import type { Scholarship, GroundingSource } from '../types';
 import LoadingSpinner from './LoadingSpinner';
 import ScholarshipCard from './ScholarshipCard';
-import { SearchIcon, UserCircleIcon, WarningIcon } from './Icons';
+import { SearchIcon, UserCircleIcon, WarningIcon, HistoryIcon, BookmarkIcon, ChevronLeftIcon, ChevronRightIcon, SortIcon } from './Icons';
 import SourceLink from './SourceLink';
 
 const FilterInput: React.FC<{ label: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; placeholder: string; }> = ({ label, value, onChange, placeholder }) => (
@@ -26,34 +26,147 @@ const ScholarshipFinder: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query.trim()) {
+  // Features
+  const [history, setHistory] = useState<string[]>([]);
+  const [bookmarks, setBookmarks] = useState<Scholarship[]>([]);
+  const [showBookmarks, setShowBookmarks] = useState(false);
+  const [sortOption, setSortOption] = useState<'relevance' | 'deadline' | 'name'>('relevance');
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  useEffect(() => {
+    const savedHistory = localStorage.getItem('abrobot_search_history');
+    if (savedHistory) setHistory(JSON.parse(savedHistory));
+
+    const savedBookmarks = localStorage.getItem('abrobot_bookmarks');
+    if (savedBookmarks) setBookmarks(JSON.parse(savedBookmarks));
+  }, []);
+
+  const updateHistory = (newQuery: string) => {
+      const updatedHistory = [newQuery, ...history.filter(q => q !== newQuery)].slice(0, 10);
+      setHistory(updatedHistory);
+      localStorage.setItem('abrobot_search_history', JSON.stringify(updatedHistory));
+  };
+
+  const toggleBookmark = (scholarship: Scholarship) => {
+      const isBookmarked = bookmarks.some(b => b.link === scholarship.link && b.name === scholarship.name);
+      
+      if (!isBookmarked) {
+          if (window.confirm(`Do you want to bookmark "${scholarship.name}"?`)) {
+              const newBookmarks = [scholarship, ...bookmarks];
+              setBookmarks(newBookmarks);
+              localStorage.setItem('abrobot_bookmarks', JSON.stringify(newBookmarks));
+          }
+      } else {
+          if (window.confirm(`Are you sure you want to remove "${scholarship.name}" from bookmarks?`)) {
+              const newBookmarks = bookmarks.filter(b => !(b.link === scholarship.link && b.name === scholarship.name));
+              setBookmarks(newBookmarks);
+              localStorage.setItem('abrobot_bookmarks', JSON.stringify(newBookmarks));
+          }
+      }
+  };
+
+  const handleShare = async (scholarship: Scholarship) => {
+      const shareData = {
+          title: scholarship.name,
+          text: `Check out this scholarship: ${scholarship.name} provided by ${scholarship.provider}. Deadline: ${scholarship.deadline}`,
+          url: scholarship.link
+      };
+
+      if (navigator.share) {
+          try {
+              await navigator.share(shareData);
+          } catch (err) {
+              console.log('Error sharing:', err);
+          }
+      } else {
+          navigator.clipboard.writeText(`${shareData.text} - ${shareData.url}`);
+          alert('Scholarship link copied to clipboard!');
+      }
+  };
+
+  const handleSearch = async (e?: React.FormEvent, overrideQuery?: string) => {
+    if (e) e.preventDefault();
+    const searchQuery = overrideQuery || query;
+    
+    if (!searchQuery.trim()) {
       setError('Please enter a main search topic.');
       return;
     }
 
+    if (overrideQuery) setQuery(overrideQuery);
+
     setIsLoading(true);
     setError(null);
     setSearched(true);
+    setShowBookmarks(false);
     setScholarships([]);
     setSources([]);
+    setCurrentPage(1);
+
+    // Update history
+    if (!overrideQuery) updateHistory(searchQuery);
 
     try {
       const filters = { major, academicLevel, location, gpa };
-      const result = await findScholarships(query, filters);
-      setScholarships(result.scholarships);
-      setSources(result.sources);
+      const result = await findScholarships(searchQuery, filters);
+      if (result.scholarships.length === 0) {
+          setError("No scholarships found matching your criteria. Try broadening your search.");
+      } else {
+          setScholarships(result.scholarships);
+          setSources(result.sources);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred.');
+      setError(err instanceof Error ? err.message : 'An unknown error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Sorting Logic
+  const sortedScholarships = useMemo(() => {
+      const list = showBookmarks ? bookmarks : scholarships;
+      if (sortOption === 'relevance') return list;
+      
+      return [...list].sort((a, b) => {
+          if (sortOption === 'name') {
+              return a.name.localeCompare(b.name);
+          }
+          if (sortOption === 'deadline') {
+               const getTimestamp = (dateStr: string) => {
+                   const str = dateStr.toLowerCase().trim();
+                   // Handle "Rolling", "Unknown", or non-date strings by putting them way in the future
+                   if (str.includes('rolling') || str.includes('open') || str.includes('unknown')) {
+                       return 8640000000000000; // Max date
+                   }
+                   const parsed = Date.parse(dateStr);
+                   // If invalid date, also push to end
+                   return isNaN(parsed) ? 8640000000000000 : parsed;
+               };
+
+               const dateA = getTimestamp(a.deadline);
+               const dateB = getTimestamp(b.deadline);
+               
+               return dateA - dateB;
+          }
+          return 0;
+      });
+  }, [scholarships, bookmarks, showBookmarks, sortOption]);
+
+  // Pagination Logic
+  const totalItems = sortedScholarships.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentScholarships = sortedScholarships.slice(indexOfFirstItem, indexOfLastItem);
+
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
   return (
     <div className="flex flex-col">
-        <div className="mb-6 p-4 bg-slate-100/80 rounded-lg border border-slate-200">
+        <div className="mb-6 p-4 bg-slate-100/80 rounded-lg border border-slate-200 shadow-sm">
             <h3 className="text-md font-semibold text-slate-700 mb-3">Refine Your Search</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                 <FilterInput label="Major/Field of Study" value={major} onChange={(e) => setMajor(e.target.value)} placeholder="e.g., Computer Science" />
@@ -71,13 +184,13 @@ const ScholarshipFinder: React.FC = () => {
             </div>
         </div>
 
-      <form onSubmit={handleSearch} className="relative mb-6">
+      <form onSubmit={(e) => handleSearch(e)} className="relative mb-3">
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Enter main topic, e.g., 'scholarships for women in STEM'"
-          className="w-full pl-4 pr-12 py-3 border-2 border-slate-300 rounded-lg focus:ring-cyan-500 focus:border-cyan-500 transition duration-200"
+          className="w-full pl-4 pr-12 py-3 border-2 border-slate-300 rounded-lg focus:ring-cyan-500 focus:border-cyan-500 transition duration-200 shadow-sm"
           aria-label="Scholarship search topic"
         />
         <button
@@ -89,22 +202,67 @@ const ScholarshipFinder: React.FC = () => {
           {isLoading ? <LoadingSpinner size={5}/> : <SearchIcon />}
         </button>
       </form>
+
+      {/* History Chips */}
+      {history.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-4">
+              <div className="flex items-center text-slate-400 text-xs mr-1">
+                  <HistoryIcon />
+              </div>
+              {history.map((h, idx) => (
+                  <button 
+                    key={idx} 
+                    onClick={() => handleSearch(undefined, h)}
+                    className="text-xs bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 px-3 py-1 rounded-full transition"
+                  >
+                      {h}
+                  </button>
+              ))}
+          </div>
+      )}
       
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-3">
+          {/* Sort Dropdown */}
+          <div className="flex items-center gap-2 self-start sm:self-center">
+              <div className="text-slate-500">
+                  <SortIcon />
+              </div>
+              <select 
+                  value={sortOption} 
+                  onChange={(e) => setSortOption(e.target.value as any)}
+                  className="text-sm border-slate-200 rounded-md py-1.5 pl-2 pr-8 text-slate-700 focus:ring-cyan-500 focus:border-cyan-500 bg-white shadow-sm cursor-pointer"
+              >
+                  <option value="relevance">Sort by Relevance</option>
+                  <option value="deadline">Sort by Deadline (Earliest)</option>
+                  <option value="name">Sort by Name (A-Z)</option>
+              </select>
+          </div>
+
+          {/* Bookmarks Toggle */}
+          <button 
+            onClick={() => setShowBookmarks(!showBookmarks)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition self-end sm:self-center ${showBookmarks ? 'bg-cyan-100 text-cyan-800' : 'text-slate-600 hover:bg-slate-100'}`}
+          >
+              <BookmarkIcon />
+              {showBookmarks ? 'Hide Bookmarks' : `Show Bookmarks (${bookmarks.length})`}
+          </button>
+      </div>
+
         {error && (
-            <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg mb-4" role="alert">
-                <div className="flex items-center">
-                    <WarningIcon />
-                    <h3 className="font-bold ml-2">An Error Occurred</h3>
+            <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4" role="alert">
+                <div className="flex items-start">
+                    <div className="mt-0.5"><WarningIcon /></div>
+                    <div className="ml-3">
+                        <h3 className="font-bold">Search Error</h3>
+                        <p className="mt-1 text-sm">{error}</p>
+                    </div>
                 </div>
-                <p className="mt-2 text-sm">{error}</p>
-                <div className="mt-3 text-sm">
-                    <p className="font-semibold">Here are a few tips:</p>
-                    <ul className="list-disc list-inside ml-2 mt-1 space-y-1">
-                        <li>Try using broader or different search terms.</li>
-                        <li>Ensure there are no typos in your query.</li>
-                        <li>Adjust or simplify the filters you've applied.</li>
-                    </ul>
-                </div>
+                <button 
+                    onClick={() => handleSearch()}
+                    className="bg-white text-red-700 border border-red-200 px-3 py-1 rounded text-sm hover:bg-red-50 transition"
+                >
+                    Try Again
+                </button>
             </div>
         )}
       
@@ -116,19 +274,65 @@ const ScholarshipFinder: React.FC = () => {
             </div>
         )}
 
-        {!isLoading && scholarships.length > 0 && (
-          <>
-            {sources.length > 0 && (
-                <div className="p-3 bg-slate-100 rounded-lg">
-                    <h3 className="text-sm font-semibold text-slate-600 mb-2">Sources:</h3>
-                    <div className="flex flex-wrap gap-2">
-                        {sources.map((source, index) => <SourceLink key={index} source={source} />)}
+        {!isLoading && (
+            <>
+                {sources.length > 0 && !showBookmarks && (
+                    <div className="p-3 bg-slate-100 rounded-lg">
+                        <h3 className="text-sm font-semibold text-slate-600 mb-2">Sources:</h3>
+                        <div className="flex flex-wrap gap-2">
+                            {sources.map((source, index) => <SourceLink key={index} source={source} />)}
+                        </div>
                     </div>
-                </div>
-            )}
-            {scholarships.map((scholarship, index) => (
-              <ScholarshipCard key={index} scholarship={scholarship} />
-            ))}
+                )}
+
+                {currentScholarships.length > 0 ? (
+                    <>
+                        {showBookmarks && <h3 className="font-bold text-lg text-slate-700">Your Bookmarks</h3>}
+                        {currentScholarships.map((scholarship, index) => (
+                        <ScholarshipCard 
+                            key={`${scholarship.name}-${index}`} 
+                            scholarship={scholarship} 
+                            isBookmarked={bookmarks.some(b => b.link === scholarship.link && b.name === scholarship.name)}
+                            onToggleBookmark={toggleBookmark}
+                            onShare={handleShare}
+                        />
+                        ))}
+
+                        {/* Pagination Controls */}
+                        {totalItems > itemsPerPage && (
+                            <div className="flex justify-center items-center gap-4 mt-6 py-4">
+                                <button
+                                    onClick={() => paginate(currentPage - 1)}
+                                    disabled={currentPage === 1}
+                                    className="p-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                                >
+                                    <ChevronLeftIcon />
+                                </button>
+                                <span className="text-sm text-slate-600 font-medium">
+                                    Page {currentPage} of {totalPages}
+                                </span>
+                                <button
+                                    onClick={() => paginate(currentPage + 1)}
+                                    disabled={currentPage === totalPages}
+                                    className="p-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                                >
+                                    <ChevronRightIcon />
+                                </button>
+                            </div>
+                        )}
+                    </>
+                ) : (
+                     (searched || showBookmarks) && !error && (
+                         <div className="text-center py-10 px-4">
+                            <h3 className="text-lg font-semibold text-slate-700">{showBookmarks ? "No Bookmarks Yet" : "No Scholarships Found"}</h3>
+                            <p className="text-slate-500 mt-2">{showBookmarks ? "Save scholarships you like to view them here." : "Try refining your search terms or adjusting filters for better results."}</p>
+                        </div>
+                     )
+                )}
+            </>
+        )}
+        
+        {!isLoading && !showBookmarks && currentScholarships.length > 0 && (
              <div className="mt-8 p-6 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg shadow-lg text-center flex flex-col items-center">
                     <UserCircleIcon />
                     <h3 className="text-2xl font-bold mt-2">Need Personalized Guidance?</h3>
@@ -142,14 +346,6 @@ const ScholarshipFinder: React.FC = () => {
                         Contact an Expert
                     </a>
                 </div>
-          </>
-        )}
-
-        {!isLoading && searched && scholarships.length === 0 && !error && (
-            <div className="text-center py-10 px-4">
-                <h3 className="text-lg font-semibold text-slate-700">No Scholarships Found</h3>
-                <p className="text-slate-500 mt-2">Try refining your search terms or adjusting filters for better results.</p>
-            </div>
         )}
       </div>
     </div>

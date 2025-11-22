@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { sendLeadData } from '../services/emailService';
+import { sendVerificationEmail, notifyAdminOfNewLead } from '../services/emailService';
 import LoadingSpinner from './LoadingSpinner';
 
 interface LeadGenerationFormProps {
@@ -33,6 +33,7 @@ const LeadGenerationForm: React.FC<LeadGenerationFormProps> = ({ onVerified }) =
     const [phone, setPhone] = useState('');
     const [errors, setErrors] = useState<{ name?: string; email?: string; phone?: string }>({});
     const [isLoading, setIsLoading] = useState(false);
+    const [isEmailSent, setIsEmailSent] = useState(false);
 
     const validate = (): boolean => {
         const newErrors: { name?: string; email?: string; phone?: string } = {};
@@ -65,13 +66,69 @@ const LeadGenerationForm: React.FC<LeadGenerationFormProps> = ({ onVerified }) =
 
         setIsLoading(true);
         try {
-            await sendLeadData({ name, email, phone });
-            onVerified();
+            await sendVerificationEmail({ name, email, phone });
+            setIsLoading(false);
+            setIsEmailSent(true);
         } catch (error) {
             setErrors({ phone: 'Something went wrong. Please try again.'});
             setIsLoading(false);
         }
     };
+
+    const handleActivation = async () => {
+        setIsLoading(true);
+        try {
+            // Notify admin about the new lead
+            await notifyAdminOfNewLead({ name, email, phone });
+        } catch (error) {
+            console.error("Failed to notify admin:", error);
+            // Proceed to verify anyway so user isn't blocked
+        } finally {
+            setIsLoading(false);
+            onVerified();
+        }
+    };
+
+    if (isEmailSent) {
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-slate-100 font-sans">
+                <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-2xl shadow-lg text-center">
+                     <div className="w-16 h-16 bg-cyan-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                     </div>
+                     <h2 className="text-2xl font-bold text-slate-800">Activate your AbroBot access</h2>
+                     <p className="text-slate-600">
+                        We've sent an activation email to <span className="font-semibold text-slate-800">{email}</span>.
+                     </p>
+                     <p className="text-sm text-slate-500">
+                        Please check your inbox and click the "Activate My Form" button inside the email to unlock your access.
+                     </p>
+                     
+                     <div className="mt-8 pt-6 border-t border-slate-200">
+                        <p className="text-xs text-slate-400 mb-4">
+                            (This is a demo. Click below to simulate activation)
+                        </p>
+                        <button
+                            onClick={handleActivation}
+                            disabled={isLoading}
+                            className="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-cyan-600 hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 transition duration-300 disabled:bg-cyan-400"
+                        >
+                            {isLoading ? <LoadingSpinner size={5} color="white" /> : 'I have activated my account'}
+                        </button>
+                     </div>
+                     <button 
+                        onClick={() => { setIsEmailSent(false); setIsLoading(false); }}
+                        disabled={isLoading}
+                        className="text-sm text-cyan-600 hover:text-cyan-700 mt-4 disabled:text-cyan-400"
+                     >
+                        Wrong email? Try again
+                     </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-slate-100 font-sans">
@@ -96,7 +153,7 @@ const LeadGenerationForm: React.FC<LeadGenerationFormProps> = ({ onVerified }) =
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-cyan-600 hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 disabled:bg-cyan-400 disabled:cursor-not-allowed"
+                            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-cyan-600 hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 disabled:bg-cyan-400 disabled:cursor-not-allowed transition duration-300"
                         >
                             {isLoading ? <LoadingSpinner size={5} color="white" /> : 'Access Now'}
                         </button>

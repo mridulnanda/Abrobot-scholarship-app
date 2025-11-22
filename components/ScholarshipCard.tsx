@@ -1,16 +1,41 @@
 import React from 'react';
 import type { Scholarship } from '../types';
-import { CalendarIcon, ExternalLinkIcon, BuildingLibraryIcon, UserCircleIcon } from './Icons';
+import { CalendarIcon, ExternalLinkIcon, BuildingLibraryIcon, UserCircleIcon, BookmarkIcon, BookmarkSolidIcon, ShareIcon } from './Icons';
 
 interface ScholarshipCardProps {
   scholarship: Scholarship;
+  isBookmarked?: boolean;
+  onToggleBookmark?: (scholarship: Scholarship) => void;
+  onShare?: (scholarship: Scholarship) => void;
 }
 
-const ScholarshipCard: React.FC<ScholarshipCardProps> = ({ scholarship }) => {
+const ScholarshipCard: React.FC<ScholarshipCardProps> = ({ scholarship, isBookmarked = false, onToggleBookmark, onShare }) => {
   return (
-    <div className="bg-white rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 border border-slate-200 overflow-hidden">
+    <div className="bg-white rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 border border-slate-200 overflow-hidden group">
         <div className="p-5">
-            <h3 className="text-lg font-bold text-cyan-700">{scholarship.name}</h3>
+            <div className="flex justify-between items-start">
+                <h3 className="text-lg font-bold text-cyan-700 flex-1 pr-2 group-hover:text-cyan-600 transition-colors">{scholarship.name}</h3>
+                <div className="flex gap-2">
+                    {onShare && (
+                         <button 
+                            onClick={() => onShare(scholarship)}
+                            className="p-1.5 rounded-full text-slate-400 hover:text-cyan-600 hover:bg-slate-100 transition-colors"
+                            title="Share this scholarship"
+                        >
+                            <ShareIcon />
+                        </button>
+                    )}
+                    {onToggleBookmark && (
+                        <button 
+                            onClick={() => onToggleBookmark(scholarship)}
+                            className={`p-1.5 rounded-full transition-colors ${isBookmarked ? 'text-cyan-600 bg-cyan-50' : 'text-slate-400 hover:text-cyan-600 hover:bg-slate-100'}`}
+                            title={isBookmarked ? "Remove bookmark" : "Bookmark this scholarship"}
+                        >
+                            {isBookmarked ? <BookmarkSolidIcon /> : <BookmarkIcon />}
+                        </button>
+                    )}
+                </div>
+            </div>
             <div className="flex items-center text-sm text-slate-500 mt-1 mb-3">
                 <BuildingLibraryIcon />
                 <span className="ml-2">{scholarship.provider}</span>
