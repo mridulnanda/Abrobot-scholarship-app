@@ -66,11 +66,12 @@ const LeadGenerationForm: React.FC<LeadGenerationFormProps> = ({ onVerified }) =
 
         setIsLoading(true);
         try {
+            // Step 1: Send the verification email to the user
             await sendVerificationEmail({ name, email, phone });
             setIsLoading(false);
             setIsEmailSent(true);
         } catch (error) {
-            setErrors({ phone: 'Something went wrong. Please try again.'});
+            setErrors({ phone: 'Something went wrong sending the email. Please try again.'});
             setIsLoading(false);
         }
     };
@@ -78,13 +79,15 @@ const LeadGenerationForm: React.FC<LeadGenerationFormProps> = ({ onVerified }) =
     const handleActivation = async () => {
         setIsLoading(true);
         try {
-            // Notify admin about the new lead
+            // Step 2: Once user "Activates", send the lead details to the Admin (mnbgotyou@gmail.com)
+            console.log("User activating account. Notifying admin...");
             await notifyAdminOfNewLead({ name, email, phone });
         } catch (error) {
             console.error("Failed to notify admin:", error);
-            // Proceed to verify anyway so user isn't blocked
+            // We still allow the user to proceed so their experience isn't broken by a backend logging issue
         } finally {
             setIsLoading(false);
+            // Step 3: Grant access to the application
             onVerified();
         }
     };
@@ -108,7 +111,7 @@ const LeadGenerationForm: React.FC<LeadGenerationFormProps> = ({ onVerified }) =
                      
                      <div className="mt-8 pt-6 border-t border-slate-200">
                         <p className="text-xs text-slate-400 mb-4">
-                            (This is a demo. Click below to simulate activation)
+                            (For Demo Purpose: Click below to simulate clicking the email link)
                         </p>
                         <button
                             onClick={handleActivation}

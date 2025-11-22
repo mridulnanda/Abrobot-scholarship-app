@@ -51,26 +51,33 @@ Need Help?
 };
 
 /**
- * Simulates forwarding the verified lead details to the admin.
+ * Simulates forwarding the verified lead details to the admin email.
+ * This is called ONLY after the user has successfully verified/activated their account.
  * 
  * @param data - The user's contact information.
  * @returns A promise that resolves to true on successful "sending".
  */
 export const notifyAdminOfNewLead = async (data: LeadData): Promise<boolean> => {
     const recipient = "mnbgotyou@gmail.com";
-    const subject = "New Verified Lead - AbroBot";
+    const subject = `New Verified User Lead: ${data.name}`;
     
     const body = `
-A new user has verified their email and accessed the platform.
+Hello Admin,
 
-Lead Details:
--------------
+A new user has successfully verified their email address and activated their AbroBot access.
+
+--------------------------------------------------
+USER LEAD DETAILS
+--------------------------------------------------
 Name:  ${data.name}
 Email: ${data.email}
 Phone: ${data.phone}
+--------------------------------------------------
 
-Status: Verified
-Timestamp: ${new Date().toISOString()}
+The user has now been granted access to the dashboard.
+
+Regards,
+AbroBot System
 `;
 
     console.log('--- SIMULATING EMAIL SENDING (ADMIN NOTIFICATION) ---');
