@@ -17,6 +17,7 @@ interface ScholarshipFilters {
 const cleanAndParseJSON = (text: string) => {
     try {
         let cleanText = text.trim();
+        // Remove markdown code blocks if present
         if (cleanText.startsWith("```json")) {
             cleanText = cleanText.replace(/^```json\s*/, "").replace(/\s*```$/, "");
         } else if (cleanText.startsWith("```")) {
@@ -42,28 +43,23 @@ export const findScholarships = async (query: string, filters: ScholarshipFilter
     
     CRITICAL INSTRUCTION FOR DEADLINE:
     The 'deadline' field MUST be in 'YYYY-MM-DD' format (e.g., 2024-12-31). 
-    If the deadline is 'Rolling', 'Open', or unknown, explicitly use the string "Rolling".`;
+    If the deadline is 'Rolling', 'Open', or unknown, explicitly use the string "Rolling".
+
+    OUTPUT FORMAT:
+    Return ONLY a raw JSON array. Do not output markdown code blocks.
+    Each object in the array must have these exact keys:
+    - "name": string
+    - "provider": string
+    - "description": string
+    - "deadline": string
+    - "link": string`;
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
-        responseMimeType: "application/json",
-        responseSchema: {
-            type: Type.ARRAY,
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    name: { type: Type.STRING },
-                    provider: { type: Type.STRING },
-                    description: { type: Type.STRING },
-                    deadline: { type: Type.STRING, description: "YYYY-MM-DD or 'Rolling'" },
-                    link: { type: Type.STRING }
-                },
-                required: ["name", "provider", "description", "deadline", "link"]
-            }
-        }
+        // NOTE: responseMimeType and responseSchema are NOT supported with googleSearch
       },
     });
     
@@ -91,30 +87,30 @@ export const getLatestNews = async (): Promise<{ articles: NewsArticle[]; source
         // Inject current date to force real-time context
         const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         
-        const prompt = `Today is ${today}. Act as a real-time news aggregator. Search for and find the 20 most significant and breaking news articles related to higher education, study abroad trends, scholarships, and student visa updates from the last 24 hours. 
+        const prompt = `Today is ${today}. Act as a real-time news aggregator. 
+        Perform a Google Search to find the 15-20 most significant and breaking news articles related to:
+        - Higher education trends
+        - Study abroad updates
+        - International Student Visas
+        - New Scholarship announcements
         
-        Prioritize news that is happening NOW. Return strict JSON.`;
+        Prioritize news published TODAY or within the last 48 hours.
+        
+        OUTPUT FORMAT:
+        Return ONLY a raw JSON array. Do not output markdown code blocks.
+        The JSON must be an array of objects with these keys:
+        - "title": Headline of the article
+        - "summary": A 2-sentence summary
+        - "source": Name of the publisher
+        - "publishedDate": The specific date or time ago (e.g., "2 hours ago", "Nov 14")
+        - "link": The URL to the article`;
 
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",
             contents: prompt,
             config: {
                 tools: [{ googleSearch: {} }],
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.ARRAY,
-                    items: {
-                        type: Type.OBJECT,
-                        properties: {
-                            title: { type: Type.STRING },
-                            summary: { type: Type.STRING },
-                            source: { type: Type.STRING },
-                            publishedDate: { type: Type.STRING },
-                            link: { type: Type.STRING }
-                        },
-                        required: ["title", "summary", "source", "publishedDate", "link"]
-                    }
-                }
+                // NOTE: responseMimeType and responseSchema are NOT supported with googleSearch
             },
         });
 

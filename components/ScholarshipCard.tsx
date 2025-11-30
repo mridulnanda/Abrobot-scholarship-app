@@ -48,7 +48,7 @@ const ScholarshipCard: React.FC<ScholarshipCardProps> = ({ scholarship, isBookma
                  </div>
                 <div className="flex items-center gap-2 flex-wrap">
                     <a 
-                        href="https://abrobot.com/contact-us"
+                        href="https://www.abrobot.ai/contactus"
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="inline-flex items-center bg-white hover:bg-slate-100 text-cyan-600 font-semibold text-sm py-2 px-4 rounded-lg transition duration-300 border border-cyan-500"

@@ -338,7 +338,7 @@ const ScholarshipFinder: React.FC = () => {
                     <h3 className="text-2xl font-bold mt-2">Need Personalized Guidance?</h3>
                     <p className="mt-2 mb-4 max-w-2xl">Let our experts at Abrobot help you navigate your scholarship journey and maximize your chances of success.</p>
                     <a 
-                        href="https://abrobot.com/contact-us" 
+                        href="https://www.abrobot.ai/contactus" 
                         target="_blank" 
                         rel="noopener noreferrer" 
                         className="bg-white text-cyan-600 font-bold py-2 px-6 rounded-lg transition duration-300 ease-in-out transform hover:-translate-y-1 shadow-lg hover:bg-slate-100"

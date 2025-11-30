@@ -23,7 +23,7 @@ Before we begin analyzing your SOP or matching you with top universities, please
 
 Your activation ensures your profile is securely linked to your personalized dashboard — powered by insights from 25 lakh+ student reviews and 4000+ expert consultants.
 
-👉 [Activate My Form](https://abrobot.com/activate?token=simulated_token)
+👉 [Activate My Form](https://www.abrobot.ai/activate?token=simulated_token)
 
 Once you activate, you’ll instantly unlock:
 ✅ AI-based SOP feedback & improvement suggestions

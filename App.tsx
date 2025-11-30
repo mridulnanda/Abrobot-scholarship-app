@@ -6,6 +6,7 @@ import NewsFeed from './components/NewsFeed';
 import AboutUs from './components/AboutUs';
 import { BookOpenIcon, NewspaperIcon, InfoIcon } from './components/Icons';
 import LeadGenerationForm from './components/LeadGenerationForm';
+import ContactPopup from './components/ContactPopup';
 
 type Tab = 'scholarships' | 'news' | 'about';
 
@@ -46,7 +47,8 @@ const App: React.FC = () => {
   );
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-100 font-sans">
+    <div className="flex flex-col min-h-screen bg-slate-100 font-sans relative">
+      <ContactPopup />
       <Header />
       <main className="flex-grow container mx-auto p-4 md:p-6 lg:p-8">
         <div className="bg-white/50 backdrop-blur-sm rounded-xl shadow-lg p-4 max-w-4xl mx-auto">

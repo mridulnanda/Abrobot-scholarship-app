@@ -6,7 +6,7 @@ const Header: React.FC = () => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-center h-16">
           <a 
-            href="https://abrobot.com" 
+            href="https://www.abrobot.ai/" 
             target="_blank" 
             rel="noopener noreferrer" 
             className="text-3xl font-extrabold text-cyan-600 hover:text-cyan-700 transition tracking-wider"
