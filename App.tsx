@@ -14,10 +14,6 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('scholarships');
   const [isVerified, setIsVerified] = useState(false);
 
-  if (!isVerified) {
-    return <LeadGenerationForm onVerified={() => setIsVerified(true)} />;
-  }
-
   const renderContent = () => {
     switch (activeTab) {
       case 'scholarships':
@@ -48,19 +44,27 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-100 font-sans relative">
+      {/* Popup is now rendered at the root level so it appears immediately */}
       <ContactPopup />
-      <Header />
-      <main className="flex-grow container mx-auto p-4 md:p-6 lg:p-8">
-        <div className="bg-white/50 backdrop-blur-sm rounded-xl shadow-lg p-4 max-w-4xl mx-auto">
-          <div className="grid grid-cols-3 gap-2 md:gap-4 p-1 bg-slate-200 rounded-lg mb-6">
-            <TabButton tabName="scholarships" label="Scholarship Finder" icon={<BookOpenIcon />} />
-            <TabButton tabName="news" label="Latest News" icon={<NewspaperIcon />} />
-            <TabButton tabName="about" label="About Us" icon={<InfoIcon />} />
-          </div>
-          {renderContent()}
-        </div>
-      </main>
-      <Footer />
+
+      {!isVerified ? (
+        <LeadGenerationForm onVerified={() => setIsVerified(true)} />
+      ) : (
+        <>
+          <Header />
+          <main className="flex-grow container mx-auto p-4 md:p-6 lg:p-8">
+            <div className="bg-white/50 backdrop-blur-sm rounded-xl shadow-lg p-4 max-w-4xl mx-auto">
+              <div className="grid grid-cols-3 gap-2 md:gap-4 p-1 bg-slate-200 rounded-lg mb-6">
+                <TabButton tabName="scholarships" label="Scholarship Finder" icon={<BookOpenIcon />} />
+                <TabButton tabName="news" label="Latest News" icon={<NewspaperIcon />} />
+                <TabButton tabName="about" label="About Us" icon={<InfoIcon />} />
+              </div>
+              {renderContent()}
+            </div>
+          </main>
+          <Footer />
+        </>
+      )}
     </div>
   );
 };
